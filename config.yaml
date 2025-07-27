@@ -1,0 +1,7 @@
+clock:
+  period_ns: 2.5
+  duty_cycle: 0.5
+  start_delay_ns: 5
+
+dram:
+  switch_delay_ns: 50

@@ -70,10 +70,56 @@ int sc_main(int argc, char* argv[]) {
     sc_core::sc_trace(tf, master_inst.rid, "rid");
     sc_core::sc_trace(tf, master_inst.rdata, "rdata");
 
-    sc_core::sc_start(50000, sc_core::SC_NS);
+    // AW channel
+    sc_core::sc_signal<bool> awvalid_signal("awvalid_signal");
+    sc_core::sc_signal<bool> awready_signal("awready_signal");
+    sc_core::sc_signal<uint32_t> awid_signal("awid_signal");
+    sc_core::sc_signal<uint32_t> awaddr_signal("awaddr_signal");
+    sc_core::sc_signal<uint32_t> awsize_signal("awsize_signal");
+    sc_core::sc_signal<uint32_t> awlen_signal("awlen_signal");
+    master_inst.awvalid(awvalid_signal);
+    slave_inst.awvalid(awvalid_signal);
+    master_inst.awready(awready_signal);
+    slave_inst.awready(awready_signal);
+    master_inst.awid(awid_signal);
+    slave_inst.awid(awid_signal);
+    master_inst.awaddr(awaddr_signal);
+    slave_inst.awaddr(awaddr_signal);
+    master_inst.awsize(awsize_signal);
+    slave_inst.awsize(awsize_signal);
+    master_inst.awlen(awlen_signal);
+    slave_inst.awlen(awlen_signal);
+    sc_core::sc_trace(tf, master_inst.awvalid, "awvalid");
+    sc_core::sc_trace(tf, master_inst.awready, "awready");
+    sc_core::sc_trace(tf, master_inst.awid, "awid");
+    sc_core::sc_trace(tf, master_inst.awaddr, "awaddr");
+    sc_core::sc_trace(tf, master_inst.awsize, "awsize");
+    sc_core::sc_trace(tf, master_inst.awlen, "awlen");
+
+    // W channel
+    sc_core::sc_signal<bool> wvalid_signal("wvalid_signal");
+    sc_core::sc_signal<bool> wready_signal("wready_signal");
+    sc_core::sc_signal<uint32_t> wid_signal("wid_signal");
+    sc_core::sc_signal<uint32_t> wdata_signal("wdata_signal");
+    master_inst.wvalid(wvalid_signal);
+    slave_inst.wvalid(wvalid_signal);
+    master_inst.wready(wready_signal);
+    slave_inst.wready(wready_signal);
+    master_inst.wid(wid_signal);
+    slave_inst.wid(wid_signal);
+    master_inst.wdata(wdata_signal);
+    slave_inst.wdata(wdata_signal);
+    sc_core::sc_trace(tf, master_inst.wvalid, "wvalid");
+    sc_core::sc_trace(tf, master_inst.wready, "wready");
+    sc_core::sc_trace(tf, master_inst.wid, "wid");
+    sc_core::sc_trace(tf, master_inst.wdata, "wdata");
+
+    sc_core::sc_start(500000, sc_core::SC_NS);
 
     std::cout << "total_data_received: " << master_inst.total_data_received << " bytes" << std::endl;
-    std::cout << "throughput: " << (((master_inst.total_data_received / 1000000000)) / (50000 * 0.000000001)) << " GB/s" << std::endl;;
+    std::cout << "throughput: " << (((master_inst.total_data_received / 1000000000)) / (500000 * 0.000000001)) << " GB/s" << std::endl;
+    std::cout << "total_data_written: " << slave_inst.total_data_written << " bytes" << std::endl;
+    std::cout << "throughput: " << (((slave_inst.total_data_written / 1000000000)) / (500000 * 0.000000001)) << " GB/s" << std::endl;
     std::cout << "Simulation for project: practice07_bus_system finished." << std::endl;
     return 0;
 }

@@ -9,6 +9,8 @@
 using namespace sc_core;
 
 SC_MODULE (AXISlave) {
+    double total_data_written = 0;
+
     sc_in<bool>      clk;
         
     // AR channel
@@ -25,15 +27,19 @@ SC_MODULE (AXISlave) {
     sc_out<uint32_t>  rid;       // slave  -> master
     sc_out<uint32_t>  rdata;     // slave  -> master
 
-    // // AW channel
-    // sc_in<bool>      awvalid;
-    // sc_out<bool>     awready;
-    // sc_in<uint32_t>  awaddr;
+    // AW channel
+    sc_in<bool>       awvalid;   // master -> slave
+    sc_out<bool>      awready;   // slave  -> master
+    sc_in<uint32_t>   awid;      // master -> slave
+    sc_in<uint32_t>   awaddr;    // master -> slave
+    sc_in<uint32_t>   awsize;    // master -> slave
+    sc_in<uint32_t>   awlen;     // master -> slave
 
-    // // W channel
-    // sc_in<bool>      wvalid;
-    // sc_out<bool>     wready;
-    // sc_in<uint32_t>  wdata;
+    // W channel
+    sc_out<bool>      wvalid;
+    sc_in<bool>       wready;
+    sc_out<uint32_t>  wid;
+    sc_in<uint32_t>   wdata;
 
     // // B channel
     // sc_out<bool>     bvalid_m;
@@ -45,6 +51,12 @@ SC_MODULE (AXISlave) {
         sensitive << clk.pos();
 
         SC_THREAD(r_process);
+        sensitive << clk.pos();
+
+        SC_THREAD(aw_process);
+        sensitive << clk.pos();
+
+        SC_THREAD(w_process);
         sensitive << clk.pos();
 
         arready.initialize(false);
@@ -63,7 +75,9 @@ private:
 
     // ar channel parameters
     std::deque<uint32_t> ar_fifo;
+    std::deque<uint32_t> aw_fifo;
     std::unordered_map<uint32_t, AR_REQ> ar_requests;
+    std::unordered_map<uint32_t, AXI_REQ> aw_requests;
     std::vector<std::vector<uint32_t>> dram;
     uint32_t curr_row = 0;
 
@@ -96,7 +110,6 @@ private:
                 wait();
             }
 
-            // wait();
             arready.write(false);
         }
     }
@@ -164,4 +177,73 @@ private:
         }
     }
 
+    void aw_process () {
+        while (true) {
+            wait();
+            while (awvalid.read() == false) {
+                wait();
+            }
+
+            {
+                // read aw_request and insert aw request map
+                uint32_t addr = awaddr.read();
+                uint32_t size = awsize.read();
+                uint32_t len = awlen.read();
+                uint32_t id = awid.read();
+                AXI_REQ aw_req;
+                aw_req.id = id;
+                aw_req.addr = addr;
+                aw_req.size = size;
+                aw_req.len = len;
+                aw_requests.insert({id, aw_req});
+                aw_fifo.push_back(id);
+                // std::cout << "[Slave ][AW] recv aw_req { awid: " << id << ", awaddr: " << addr <<  ", awsize: " << size << ", awlen: " << len << "}" << std::endl;
+            }
+            awready.write(true);
+            wait();
+
+            while (awvalid.read() == false) {
+                wait();
+            }
+
+            // wait();
+            awready.write(false);
+        }
+    }
+
+    void w_process () {
+        while (true) {
+            while (aw_fifo.empty() == true) {
+                wait();        
+            }
+
+            uint32_t id = aw_fifo.front();
+            aw_fifo.pop_front();
+            AXI_REQ w_req = aw_requests[id];
+
+            wid.write(id);
+            wvalid.write(true);
+            while (wready.read() == true) {
+                wait();
+            }
+
+            uint32_t total_offset = ((1 << w_req.size) * (w_req.len + 1)) >> BUS_WIDTH;
+            for (uint32_t offset = 0; offset < total_offset; offset++) {
+                while (wready.read() == false) {
+                    wait();
+                }
+
+                uint32_t write_data = wdata.read();
+                // std::cout << "[Slave ][id:" << id << "][offset:" << offset << "] " << std::hex << write_data << std::dec << std::endl;
+                total_data_written += (1 << BUS_WIDTH);
+                wait();
+            }
+
+            wvalid.write(false);
+            while (wready.read() == true) {
+                wait();
+            }
+            wait();
+        }
+    }
 };

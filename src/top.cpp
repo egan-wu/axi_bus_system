@@ -57,6 +57,7 @@ int sc_main(int argc, char* argv[]) {
     sc_core::sc_signal<bool> rready_signal("rready_signal");
     sc_core::sc_signal<uint32_t> rid_signal("rid_signal");
     sc_core::sc_signal<uint32_t> rdata_signal("rdata_signal");
+    sc_core::sc_signal<bool> rlast_signal("rlast_signal");
     master_inst.rvalid(rvalid_signal);
     slave_inst.rvalid(rvalid_signal);
     master_inst.rready(rready_signal);
@@ -65,10 +66,13 @@ int sc_main(int argc, char* argv[]) {
     slave_inst.rid(rid_signal);
     master_inst.rdata(rdata_signal);
     slave_inst.rdata(rdata_signal);
+    master_inst.rlast(rlast_signal);
+    slave_inst.rlast(rlast_signal);
     sc_core::sc_trace(tf, master_inst.rvalid, "rvalid");
     sc_core::sc_trace(tf, master_inst.rready, "rready");
     sc_core::sc_trace(tf, master_inst.rid, "rid");
     sc_core::sc_trace(tf, master_inst.rdata, "rdata");
+    sc_core::sc_trace(tf, master_inst.rlast, "rlast");
 
     // AW channel
     sc_core::sc_signal<bool> awvalid_signal("awvalid_signal");
@@ -101,6 +105,7 @@ int sc_main(int argc, char* argv[]) {
     sc_core::sc_signal<bool> wready_signal("wready_signal");
     sc_core::sc_signal<uint32_t> wid_signal("wid_signal");
     sc_core::sc_signal<uint32_t> wdata_signal("wdata_signal");
+    sc_core::sc_signal<bool> wlast_signal("wlast_signal");
     master_inst.wvalid(wvalid_signal);
     slave_inst.wvalid(wvalid_signal);
     master_inst.wready(wready_signal);
@@ -109,10 +114,13 @@ int sc_main(int argc, char* argv[]) {
     slave_inst.wid(wid_signal);
     master_inst.wdata(wdata_signal);
     slave_inst.wdata(wdata_signal);
+    master_inst.wlast(wlast_signal);
+    slave_inst.wlast(wlast_signal);
     sc_core::sc_trace(tf, master_inst.wvalid, "wvalid");
     sc_core::sc_trace(tf, master_inst.wready, "wready");
     sc_core::sc_trace(tf, master_inst.wid, "wid");
     sc_core::sc_trace(tf, master_inst.wdata, "wdata");
+    sc_core::sc_trace(tf, master_inst.wlast, "wlast");
 
     double exe_time = m_config_loader.cfg.common.execution_time;
     sc_core::sc_start(exe_time, sc_core::SC_NS);

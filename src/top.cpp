@@ -114,12 +114,13 @@ int sc_main(int argc, char* argv[]) {
     sc_core::sc_trace(tf, master_inst.wid, "wid");
     sc_core::sc_trace(tf, master_inst.wdata, "wdata");
 
-    sc_core::sc_start(500000, sc_core::SC_NS);
+    double exe_time = 500000;
+    sc_core::sc_start(exe_time, sc_core::SC_NS);
 
     std::cout << "total_data_received: " << master_inst.total_data_received << " bytes" << std::endl;
-    std::cout << "throughput: " << (((master_inst.total_data_received / 1000000000)) / (500000 * 0.000000001)) << " GB/s" << std::endl;
+    std::cout << "throughput: " << (((master_inst.total_data_received / 1000000000)) / (exe_time * 0.000000001)) << " GB/s" << std::endl;
     std::cout << "total_data_written: " << slave_inst.total_data_written << " bytes" << std::endl;
-    std::cout << "throughput: " << (((slave_inst.total_data_written / 1000000000)) / (500000 * 0.000000001)) << " GB/s" << std::endl;
+    std::cout << "throughput: " << (((slave_inst.total_data_written / 1000000000)) / (exe_time * 0.000000001)) << " GB/s" << std::endl;
     std::cout << "Simulation for project: practice07_bus_system finished." << std::endl;
     return 0;
 }

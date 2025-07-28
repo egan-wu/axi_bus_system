@@ -116,6 +116,7 @@ private:
         
         while (true) {
             type = randn(READ, WRITE);
+            // type = randn(READ, READ);
             row  = randn(0, 0);
             col  = randn(0, 0);
             addr = ADDRESS(row, col);
@@ -126,7 +127,7 @@ private:
                 write(addr);
             }
 
-            wait(2, sc_core::SC_NS);
+            wait(2.5, sc_core::SC_NS);
         }
     }
 
@@ -143,8 +144,8 @@ private:
             {
                 // for AR_REQ and insert ar_requests
                 ar_req.id = m_arid++;
-                ar_req.size = 0x7;
-                ar_req.len = randn(0, 4); // BL2
+                ar_req.size = BUS_WIDTH + randn(0, 3); // 128B, 256B, 512B, 1024B 
+                ar_req.len = randn(0, 31); // BL2
                 ar_requests.insert({ar_req.id, ar_req});
                 // std::cout << "[Master][AR] send ar_req { arid: " << ar_req.arid << ", araddr: " << ar_req.araddr << " [r:" << ROW_INDEX(ar_req.araddr) << ",c:" << COL_INDEX(ar_req.araddr) << "] , arsize: " << ar_req.arsize << ", arlen: " << ar_req.arlen << "}" << std::endl;
 
@@ -167,30 +168,24 @@ private:
 
     void r_process () {
         while (true) {
-            wait();
+            // wait();
             while (ar_requests.empty()) {
                 wait();
             }
 
-            // listen to rvalid, wait for rdata
-            while (rvalid.read() == false) {
-                wait();
-            }
-
             {
-                // assert rready to ack slave
-                rready.write(true);
-                wait();
-
+                // listen to rvalid, wait for rdata
                 while (rvalid.read() == false) {
                     wait();
                 }
                 uint32_t id = rid.read();
+
+                rready.write(true);
                 wait();
 
                 if (ar_requests.find(id) != ar_requests.end()) {
                     AXI_REQ r_req = ar_requests[id];
-                    uint32_t total_offset = ((1 << r_req.size) * (r_req.len + 1)) >> BUS_WIDTH;
+                    uint32_t total_offset = ((1 << r_req.size) * (r_req.len + 1)) / (1 << BUS_WIDTH);
                     for (uint32_t offset = 0; offset < total_offset; offset++) {
                         while (rvalid.read() == false) {
                             wait();
@@ -205,12 +200,13 @@ private:
                 else { assert(0); }
 
                 rready.write(false);
-                wait();
+                // wait();
 
                 // wait until slave deassert rvalid
                 while (rvalid.read() == true) {
                     wait();
                 }
+                wait();
             }
         }
     }
@@ -230,8 +226,8 @@ private:
             {
                 // for AW_REQ and insert ar_requests
                 aw_req.id = m_awid++;
-                aw_req.size = 0x7;
-                aw_req.len = randn(0, 4); // BL2
+                aw_req.size = BUS_WIDTH + randn(0, 3);
+                aw_req.len = randn(0, 31); // BL2
                 aw_requests.insert({aw_req.id, aw_req});
                 // std::cout << "[Master][AW] send aw_req { id: " << aw_req.id << ", addr: " << aw_req.addr << " [r:" << ROW_INDEX(aw_req.addr) << ",c:" << COL_INDEX(aw_req.addr) << "] , size: " << aw_req.size << ", len: " << aw_req.len << "}" << std::endl;
 
@@ -262,7 +258,7 @@ private:
 
             uint32_t id = wid.read();
             AXI_REQ w_req = aw_requests[id];
-            uint32_t total_offset = ((1 << w_req.size) * (w_req.len + 1)) >> BUS_WIDTH;
+            uint32_t total_offset = ((1 << w_req.size) * (w_req.len + 1)) / (1 << BUS_WIDTH);
 
             wready.write(true);
             for (uint32_t offset = 0; offset < total_offset; offset++) {

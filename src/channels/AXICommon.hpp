@@ -7,7 +7,7 @@
 #define ROW_INDEX(x)    (x >> 12)
 #define ADDRESS(r, c)   ((r << 12) | (c & 0xFFF))
 
-#define BUS_WIDTH       (6)
+#define BUS_WIDTH       (7) // 128B
 #define READ            (0)
 #define WRITE           (1)
 

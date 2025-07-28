@@ -62,10 +62,10 @@ SC_MODULE (AXISlave) {
         arready.initialize(false);
         rvalid.initialize(false);
 
-        dram.resize(16, std::vector<uint32_t>(4096, 0x0));
+        dram.resize(16, std::vector<uint32_t>(16384, 0x0));
         int data = 0;
         for (int i = 0; i < 16; i++) {
-            for (int j = 0; j < 4096; j++) {
+            for (int j = 0; j < 16384; j++) {
                 dram[i][j] = data++;
             }
         }
@@ -116,7 +116,6 @@ private:
 
     void r_process () {
         while (true) {
-            wait();
             while (ar_fifo.empty()) {
                 wait();
             }
@@ -130,6 +129,14 @@ private:
                     uint32_t row = ROW_INDEX(ar_req.araddr);
                     uint32_t col = COL_INDEX(ar_req.araddr);
 
+                    // address range check
+                    if (row >= dram.size() || col + ar_req.arsize * ar_req.arlen >= dram[0].size()) {
+                        std::cout << "row: " << row << ", col: " << col << std::endl;
+                        SC_REPORT_ERROR("AXISlave", "Address out of bounds!");
+                        sc_core::sc_stop();
+                        return;
+                    }
+
                     {
                         if (curr_row != row) {
                             wait(500, sc_core::SC_NS);
@@ -139,16 +146,10 @@ private:
 
                     rid.write(ar_req.arid);
                     rvalid.write(true);
-                    wait();
+                    // while (rready.read() == false) {
+                    //     wait();
+                    // }
                     
-                    // address range check
-                    if (row >= dram.size() || col + ar_req.arsize * ar_req.arlen >= dram[0].size()) {
-                        std::cout << "row: " << row << ", col: " << col << std::endl;
-                        SC_REPORT_ERROR("AXISlave", "Address out of bounds!");
-                        sc_core::sc_stop();
-                        return;
-                    }
-
                     uint32_t total_offset = ((1 << ar_req.arsize) * (ar_req.arlen + 1)) >> BUS_WIDTH;
                     for (uint32_t offset = 0; offset < total_offset; offset++) {
                         while (rready.read() == false) {
@@ -165,12 +166,12 @@ private:
                     }
 
                     rvalid.write(false);
-                    wait();
 
                     // wait until master deassert rready
-                    while (rready.read() == false) {
+                    while (rready.read() == true) {
                         wait();
                     }
+                    // wait();
                 } 
                 else { assert(0); }
             }

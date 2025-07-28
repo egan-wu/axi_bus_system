@@ -26,6 +26,7 @@ SC_MODULE (AXISlave) {
     sc_in<bool>       rready;    // master -> slave
     sc_out<uint32_t>  rid;       // slave  -> master
     sc_out<uint32_t>  rdata;     // slave  -> master
+    sc_out<bool>      rlast;     // slave  -> master
 
     // AW channel
     sc_in<bool>       awvalid;   // master -> slave
@@ -40,6 +41,7 @@ SC_MODULE (AXISlave) {
     sc_in<bool>       wready;
     sc_out<uint32_t>  wid;
     sc_in<uint32_t>   wdata;
+    sc_in<bool>       wlast;     // slave  -> master
 
     // // B channel
     // sc_out<bool>     bvalid_m;
@@ -61,6 +63,8 @@ SC_MODULE (AXISlave) {
 
         arready.initialize(false);
         rvalid.initialize(false);
+        rlast.initialize(false);
+        // wlast.initialize(false);
 
         dram.resize(16, std::vector<uint32_t>(16384, 0x0));
         int data = 0;
@@ -146,9 +150,6 @@ private:
 
                     rid.write(ar_req.arid);
                     rvalid.write(true);
-                    // while (rready.read() == false) {
-                    //     wait();
-                    // }
                     
                     uint32_t total_offset = ((1 << ar_req.arsize) * (ar_req.arlen + 1)) >> BUS_WIDTH;
                     for (uint32_t offset = 0; offset < total_offset; offset++) {
@@ -156,6 +157,9 @@ private:
                             wait();
                         }
                         rdata.write(dram[row][col + offset]);
+                        if (offset == total_offset - 1) {
+                            rlast.write(true);
+                        }
                         wait();
                     }
 
@@ -165,13 +169,8 @@ private:
                         ar_requests.erase(id);
                     }
 
+                    rlast.write(false);
                     rvalid.write(false);
-
-                    // wait until master deassert rready
-                    while (rready.read() == true) {
-                        wait();
-                    }
-                    // wait();
                 } 
                 else { assert(0); }
             }
@@ -207,7 +206,6 @@ private:
                 wait();
             }
 
-            // wait();
             awready.write(false);
         }
     }
@@ -228,20 +226,16 @@ private:
                 wait();
             }
 
-            uint32_t total_offset = ((1 << w_req.size) * (w_req.len + 1)) >> BUS_WIDTH;
-            for (uint32_t offset = 0; offset < total_offset; offset++) {
-                while (wready.read() == false) {
-                    wait();
+            uint32_t write_data;
+            while (true) {
+                if (wready.read() == true) {
+                    write_data = wdata.read();
+                    total_data_written += (1 << BUS_WIDTH);
+                    if (wlast.read() == true) {
+                        wvalid.write(false);
+                        break;
+                    }
                 }
-
-                uint32_t write_data = wdata.read();
-                // std::cout << "[Slave ][id:" << id << "][offset:" << offset << "] " << std::hex << write_data << std::dec << std::endl;
-                total_data_written += (1 << BUS_WIDTH);
-                wait();
-            }
-
-            wvalid.write(false);
-            while (wready.read() == true) {
                 wait();
             }
             wait();

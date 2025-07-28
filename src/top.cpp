@@ -114,7 +114,7 @@ int sc_main(int argc, char* argv[]) {
     sc_core::sc_trace(tf, master_inst.wid, "wid");
     sc_core::sc_trace(tf, master_inst.wdata, "wdata");
 
-    double exe_time = 500000;
+    double exe_time = m_config_loader.cfg.common.execution_time;
     sc_core::sc_start(exe_time, sc_core::SC_NS);
 
     std::cout << "total_data_received: " << master_inst.total_data_received << " bytes" << std::endl;

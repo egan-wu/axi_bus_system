@@ -1,3 +1,6 @@
+common:
+  execution_time: 50000 # ns
+
 clock:
   period_ns: 2
   duty_cycle: 0.5

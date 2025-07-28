@@ -7,7 +7,17 @@
 #define ROW_INDEX(x)    (x >> 12)
 #define ADDRESS(r, c)   ((r << 12) | (c & 0xFFF))
 
-#define BUS_WIDTH       (6)
+#define BUS_WIDTH       (7) // 128B
+#define READ            (0)
+#define WRITE           (1)
+
+struct AXI_REQ {
+    uint32_t type;
+    uint32_t id;
+    uint32_t addr;
+    uint32_t size;
+    uint32_t len;
+};
 
 struct AR_REQ {
     uint32_t arid;

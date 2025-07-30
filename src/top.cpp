@@ -1,9 +1,9 @@
 #include <systemc>
 #include <iostream>
-#include "config.hpp"
 
 #include "channels/AXIMaster.hpp"
 #include "channels/AXISlave.hpp"
+#include "channels/DDR.hpp"
 #include "config.hpp"
 
 int sc_main(int argc, char* argv[]) {
@@ -14,6 +14,7 @@ int sc_main(int argc, char* argv[]) {
 
     AXIMaster master_inst("master_instance");
     AXISlave slave_inst("slave_instance");
+    DDR ddr_inst("ddr_instance");
 
     sc_core::sc_trace_file* tf = sc_core::sc_create_vcd_trace_file("axi_ar_waveform");
     if (!tf) {
@@ -24,7 +25,30 @@ int sc_main(int argc, char* argv[]) {
     sc_core::sc_clock clk("main_clock", m_config_loader.cfg.clock.period_ns, sc_core::SC_NS, 0.5, 5, sc_core::SC_NS, true);
     master_inst.clk(clk);
     slave_inst.clk(clk);
+    ddr_inst.clk(clk);
     sc_core::sc_trace(tf, clk, "clk");
+
+    // ddr <--> slave
+    sc_core::sc_signal<DDR_CMD> ca_signal("ca_signal");
+    sc_core::sc_signal<bool> ca_en_signal("ca_en_signal");
+    sc_core::sc_signal<bool> data_ready_signal("data_ready_signal");
+    sc_core::sc_signal<uint32_t> data_out_signal("data_out_signal");
+    sc_core::sc_signal<uint32_t> data_in_signal("data_in_signal");
+    ddr_inst.ca(ca_signal);
+    slave_inst.ca(ca_signal);
+    ddr_inst.ca_en(ca_en_signal);
+    slave_inst.ca_en(ca_en_signal);
+    ddr_inst.data_ready(data_ready_signal);
+    slave_inst.data_ready(data_ready_signal);
+    ddr_inst.data_out(data_out_signal);
+    slave_inst.data_in(data_out_signal);
+    ddr_inst.data_in(data_in_signal);
+    slave_inst.data_out(data_in_signal);
+    sc_core::sc_trace(tf, ddr_inst.ca, "ca");
+    sc_core::sc_trace(tf, ddr_inst.ca_en, "ca_en");
+    sc_core::sc_trace(tf, ddr_inst.data_ready, "data_ready");
+    sc_core::sc_trace(tf, ddr_inst.data_out, "data_out");
+    sc_core::sc_trace(tf, ddr_inst.data_in, "data_in");
 
     // AR channel
     sc_core::sc_signal<bool> arvalid_signal("arvalid_signal");
@@ -51,7 +75,7 @@ int sc_main(int argc, char* argv[]) {
     sc_core::sc_trace(tf, master_inst.araddr, "araddr");
     sc_core::sc_trace(tf, master_inst.arsize, "arsize");
     sc_core::sc_trace(tf, master_inst.arlen, "arlen");
-
+    
     // R channel
     sc_core::sc_signal<bool> rvalid_signal("rvalid_signal");
     sc_core::sc_signal<bool> rready_signal("rready_signal");

@@ -49,7 +49,7 @@ SC_MODULE (AXIMaster) {
     // sc_out<bool>     bvalid_m;
     // sc_in<bool>      bready_m;
     // sc_in<uint32_t>  bresp_m;
-
+    
     sc_mutex fifo_mutex;
     std::deque<AXI_REQ> req_fifo;
 
@@ -112,16 +112,19 @@ private:
 
     void gen_cmd_process() {
         uint32_t type;
+        uint32_t bank;
         uint32_t row;
         uint32_t col;
         uint32_t addr;
         
         while (true) {
-            type = randn(READ, WRITE);
+            // type = randn(READ, WRITE);
             // type = randn(READ, READ);
-            row  = randn(0, 0);
-            col  = randn(0, 0);
-            addr = ADDRESS(row, col);
+            type = randn(WRITE, WRITE);
+            bank = randn(0, BANK_NUM);
+            row  = randn(0, ROW_NUM);
+            col  = randn(0, COL_NUM);
+            addr = ADDRESS(bank, row, col);
 
             if (type == READ) {
                 read(addr);

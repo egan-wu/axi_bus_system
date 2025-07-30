@@ -5,6 +5,7 @@
 #include <iostream>
 #include <unordered_map>
 #include "AXICommon.hpp"
+#include "DDR.hpp"
 
 using namespace sc_core;
 
@@ -47,6 +48,13 @@ SC_MODULE (AXISlave) {
     // sc_out<bool>     bvalid_m;
     // sc_in<bool>      bready_m;
     // sc_in<uint32_t>  bresp_m;
+
+    // -- Connect to DDR
+    sc_out<DDR_CMD>   ca;
+    sc_out<bool>      ca_en;
+    sc_in<bool>       data_ready;
+    sc_in<uint32_t>   data_in;
+    sc_out<uint32_t>  data_out;
 
     SC_CTOR(AXISlave) {
         SC_THREAD(ar_process);
@@ -133,30 +141,42 @@ private:
                     uint32_t row = ROW_INDEX(ar_req.araddr);
                     uint32_t col = COL_INDEX(ar_req.araddr);
 
-                    // address range check
-                    if (row >= dram.size() || col + ar_req.arsize * ar_req.arlen >= dram[0].size()) {
-                        std::cout << "row: " << row << ", col: " << col << std::endl;
-                        SC_REPORT_ERROR("AXISlave", "Address out of bounds!");
-                        sc_core::sc_stop();
-                        return;
+                    uint32_t total_offset = ((1 << ar_req.arsize) * (ar_req.arlen + 1)) >> BUS_WIDTH;
+                    DDR_CMD cmd;
+                    cmd.address = ar_req.araddr;
+                    cmd.type = READ;
+                    cmd.burst = total_offset;
+                    std::vector<uint32_t> data_buffer;
+                    data_buffer.resize(total_offset, 0x00);
+                    ca.write(cmd);
+                    ca_en.write(true);
+                    while (data_ready.read() == false) {
+                        wait();
+                    }
+                    ca_en.write(false);
+
+                    for (uint32_t offset = 0; offset < total_offset; offset++) {
+                        if (data_ready.read() == true) {
+                            data_buffer[offset] = data_in.read();
+                        }
+                        wait();
                     }
 
-                    {
-                        if (curr_row != row) {
-                            wait(500, sc_core::SC_NS);
-                        }
-                        curr_row = row;
-                    }
+                    // {
+                    //     if (curr_row != row) {
+                    //         wait(500, sc_core::SC_NS);
+                    //     }
+                    //     curr_row = row;
+                    // }
 
                     rid.write(ar_req.arid);
                     rvalid.write(true);
-                    
-                    uint32_t total_offset = ((1 << ar_req.arsize) * (ar_req.arlen + 1)) >> BUS_WIDTH;
+
                     for (uint32_t offset = 0; offset < total_offset; offset++) {
                         while (rready.read() == false) {
                             wait();
                         }
-                        rdata.write(dram[row][col + offset]);
+                        rdata.write(data_buffer[offset]);
                         if (offset == total_offset - 1) {
                             rlast.write(true);
                         }

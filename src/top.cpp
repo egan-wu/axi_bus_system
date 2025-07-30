@@ -6,7 +6,7 @@
 #include "channels/DDR.hpp"
 #include "config.hpp"
 
-int sc_main(int argc, char* argv[]) {
+int sc_main([[maybe_unused]]int argc, [[maybe_unused]]char* argv[]) {
     std::cout << "Starting simulation for project: practice07_bus_system" << std::endl;
 
     config_loader m_config_loader;

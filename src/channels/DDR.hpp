@@ -47,10 +47,10 @@ SC_MODULE (DDR) {
         }
 
         uint32_t val;
-        for (int i = 0; i < ddr.size(); i++) {
-            for (int j = 0; j < ddr[i].size(); j++) {
+        for (size_t i = 0; i < ddr.size(); i++) {
+            for (size_t j = 0; j < ddr[i].size(); j++) {
                 val = 0;
-                for (int k = 0; k < ddr[i][j].size(); k++) {
+                for (size_t k = 0; k < ddr[i][j].size(); k++) {
                     ddr[i][j][k] = 0xDEAD0000 + (val++);
                 }
             }

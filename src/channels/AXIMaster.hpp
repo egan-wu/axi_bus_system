@@ -188,8 +188,8 @@ private:
                 wait();
 
                 if (ar_requests.find(id) != ar_requests.end()) {
-                    AXI_REQ r_req = ar_requests[id];
-                    uint32_t read_data;
+                    // AXI_REQ r_req = ar_requests[id];
+                    [[maybe_unused]]uint32_t read_data;
                     while (true) {
                         if (rvalid.read() == true) {
                             read_data = rdata.read();

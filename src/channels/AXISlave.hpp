@@ -138,8 +138,8 @@ private:
                 if (ar_requests.find(id) != ar_requests.end()) {
 
                     AR_REQ ar_req = ar_requests[id];
-                    uint32_t row = ROW_INDEX(ar_req.araddr);
-                    uint32_t col = COL_INDEX(ar_req.araddr);
+                    // uint32_t row = ROW_INDEX(ar_req.araddr);
+                    // uint32_t col = COL_INDEX(ar_req.araddr);
 
                     uint32_t total_offset = ((1 << ar_req.arsize) * (ar_req.arlen + 1)) >> BUS_WIDTH;
                     DDR_CMD cmd;
@@ -238,7 +238,7 @@ private:
 
             uint32_t id = aw_fifo.front();
             aw_fifo.pop_front();
-            AXI_REQ w_req = aw_requests[id];
+            // AXI_REQ w_req = aw_requests[id];
 
             wid.write(id);
             wvalid.write(true);
@@ -246,7 +246,7 @@ private:
                 wait();
             }
 
-            uint32_t write_data;
+            [[maybe_unused]]uint32_t write_data;
             while (true) {
                 if (wready.read() == true) {
                     write_data = wdata.read();
